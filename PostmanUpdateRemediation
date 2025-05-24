@@ -1,0 +1,41 @@
+Write-Host "Attempting to update APP..."
+
+
+# USER CONTEXT SCRIPTAS
+
+
+# Check if winget is available in the system's PATH
+$winget = Get-Command winget -ErrorAction SilentlyContinue
+
+if ($winget) {
+    Write-Host "Using Winget from: $($winget.Source)"
+} else {
+    Write-Host "Winget not found. Ensure the App Installer package is installed."
+    exit 1
+}
+
+
+# Check if APP is installed using winget
+$installedApp = winget list --id "Postman.Postman" --exact --accept-source-agreements 2>&1
+
+if ($installedApp -match "Postman.Postman") {
+    # If APP is installed, run upgrade
+    Write-Host "APP is installed. Attempting to upgrade..."
+    $upgradeResult = winget upgrade --id "Postman.Postman" --silent --accept-package-agreements 2>&1
+    
+    # Check the outcome of the winget upgrade
+    if ($upgradeResult -match "No applicable update found" -or $upgradeResult -match "No available upgrade found") {
+        Write-Host "No upgrade available for APP. It's already up to date."
+        exit 0  # Treat "No upgrade available" as success
+    } elseif ($LASTEXITCODE -eq 0) {
+        Write-Host "APP has been updated successfully."
+        exit 0  # Successful update
+    } else {
+        Write-Host "APP update failed. Error: $upgradeResult"
+        exit 1  # Failed to update APP
+    }
+} else {
+    # If APP is not installed, do nothing
+    Write-Host "APP is not installed. No action taken."
+    exit 0  # No remediation needed if not installed
+}
