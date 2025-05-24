@@ -1,0 +1,46 @@
+Write-Host "Attempting to update App..."
+
+# === Configuration ===
+$appWingetId    = "DominikReichl.KeePass"
+$appExeName     = "KeePass"
+$appExePath     = "$env:ProgramFiles\KeePass Password Safe 2\KeePass.exe"
+# =====================
+
+# Check if the app is running
+$wasRunning = $false
+$runningProcess = Get-Process -Name $appExeName -ErrorAction SilentlyContinue
+
+if ($runningProcess) {
+    Write-Host "Closing $appExeName..."
+    Stop-Process -Name $appExeName -Force -ErrorAction SilentlyContinue
+    $wasRunning = $true
+    Start-Sleep -Seconds 5
+}
+
+# Resolve the path to winget.exe
+$ResolveWingetPath = Resolve-Path "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue
+
+if ($ResolveWingetPath) {
+    $WingetPath = $ResolveWingetPath[-1].Path
+    Write-Host "Using Winget from: $WingetPath"
+} else {
+    Write-Host "Winget not found. Ensure the App Installer package is installed."
+    exit 1
+}
+
+# Check if the app is installed
+$installedApp = & "$WingetPath" list --id "$appWingetId" --exact --accept-source-agreements 2>&1
+
+if ($installedApp -match [regex]::Escape($appWingetId)) {
+    Write-Host "$appWingetId is installed. Attempting to upgrade..."
+    $upgradeResult = & "$WingetPath" upgrade --id "$appWingetId" --silent --accept-package-agreements 2>&1
+
+    if ($upgradeResult -match "No applicable update found" -or $upgradeResult -match "No available upgrade found") {
+        Write-Host "No upgrade available for $appWingetId. It's already up to date."
+    } elseif ($LASTEXITCODE -eq 0) {
+        Write-Host "$appWingetId has been updated successfully."
+    } else {
+        Write-Host "$appWingetId update failed. Error: $upgradeResult"
+        exit 1
+    }
+}
