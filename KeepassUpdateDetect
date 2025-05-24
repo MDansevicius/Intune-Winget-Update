@@ -1,0 +1,21 @@
+# Function to get App version
+function Get-AppVersion {
+    $AppPath = "C:\Program Files\KeePass Password Safe 2\KeePass.exe"
+    $AppExecutable = Get-Item $AppPath -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($AppExecutable) {
+        return ($AppExecutable.VersionInfo.ProductVersion)
+    }
+    return $null
+}
+
+
+# Get installed APP version
+$InstalledVersion = Get-AppVersion
+
+if ($InstalledVersion) {
+    Write-Host "$InstalledVersion Version - App is installed."
+    exit 1 
+} else {
+    Write-Host "Application is not installed."
+    exit 0  
+}
