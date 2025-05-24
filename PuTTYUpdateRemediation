@@ -1,0 +1,37 @@
+Write-Host "Attempting to update App..."
+
+# Resolve the path to winget.exe
+$ResolveWingetPath = Resolve-Path "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue
+
+if ($ResolveWingetPath) {
+    $WingetPath = $ResolveWingetPath[-1].Path  # Get the latest version
+    Write-Host "Using Winget from: $WingetPath"
+} else {
+    Write-Host "Winget not found. Ensure the App Installer package is installed."
+    exit 1
+}
+
+# Check if App is installed using full path to winget.exe
+$installedPostman = & "$WingetPath" list --id "PuTTY.PuTTY" --exact --accept-source-agreements 2>&1
+
+if ($installedPostman -match "PuTTY.PuTTY") {
+    # If App is installed, run upgrade
+    Write-Host "App is installed. Attempting to upgrade..."
+    $upgradeResult = & "$WingetPath" upgrade --id "PuTTY.PuTTY" --silent --accept-package-agreements 2>&1
+    
+    # Check the outcome of the winget upgrade
+    if ($upgradeResult -match "No applicable update found" -or $upgradeResult -match "No available upgrade found") {
+        Write-Host "No upgrade available for App. It's already up to date."
+        exit 0  # Treat "No upgrade available" as success
+    } elseif ($LASTEXITCODE -eq 0) {
+        Write-Host "App has been updated successfully."
+        exit 0  # Successful update
+    } else {
+        Write-Host "App update failed. Error: $upgradeResult"
+        exit 1  # Failed to update
+    }
+} else {
+    # If App is not installed, do nothing
+    Write-Host "App is not installed. No action taken."
+    exit 0  # No remediation needed if not installed
+}
