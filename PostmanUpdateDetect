@@ -1,0 +1,60 @@
+# Define the application ID
+$AppID = "Postman.Postman"  # Change this to check a different app
+
+# Function to get installed application version
+function Get-AppVersion {
+    $AppPath = "C:\Users\*\AppData\Local\Postman\Postman.exe"
+    $AppExecutable = Get-Item $AppPath -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($AppExecutable) {
+        return ($AppExecutable.VersionInfo.ProductVersion)
+    }
+    return $null
+}
+
+# Get installed application version
+$InstalledVersion = Get-AppVersion
+
+if ($InstalledVersion) {
+    Write-Output "$InstalledVersion Version - Application is installed."
+} else {
+    Write-Output "Application is not installed."
+    exit 0  
+}
+
+# Check if the application is installed
+$LocalSearch = & winget list -e --id $AppID
+
+if ($LocalSearch -eq $null) {
+    Write-Output "Application is not installed."
+    exit 0
+}
+
+# Get the online version of the application
+$OnlineSearch = & winget search -e --id $AppID --accept-source-agreements
+$OnlineVersion = (-split $OnlineSearch[-1])[-2]
+
+# Get the installed version of the application
+$CheckIfAvailableExist = (-split $LocalSearch[-3])[-2]
+
+if ($CheckIfAvailableExist -eq "Available") {
+    $LocalVersion = (-split $LocalSearch[-1])[-3]
+} else {
+    $LocalVersion = (-split $LocalSearch[-1])[-2]
+}
+
+# Check if the local version was detected
+if ($LocalVersion -eq "input") {
+    Write-Output "Application is not installed."
+    exit 0
+}
+
+# Compare the installed version with the online version
+if ($LocalVersion -ge $OnlineVersion) {
+    Write-Output "$InstalledVersion Version - Application is installed and up-to-date."
+    exit 0
+} else {
+    Write-Output "$InstalledVersion Version - Application is installed but not up-to-date. Updating..."
+    # Uncomment the line below to trigger the update
+    # & "$WingetPath" upgrade --id $AppID --accept-source-agreements
+    exit 1
+}
